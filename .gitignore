@@ -1,0 +1,5 @@
+config.ini
+.venv
+senec_*.html
+senec_*.json
+__pycache__

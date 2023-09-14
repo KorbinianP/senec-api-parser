@@ -1,0 +1,5 @@
+requests
+inquirer
+matplotlib
+mpld3
+pylint
