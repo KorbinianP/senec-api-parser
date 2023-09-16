@@ -1,7 +1,7 @@
 """Demo code to learn and understand the responses of senec api"""
 import datetime
-import inquirer
 import configparser
+import inquirer
 
 from senec_api import (
     login,
@@ -12,6 +12,7 @@ from senec_api import (
     TimePeriod,
 )
 from senec_svg import create_interactive_html
+from senec_aggregate_statistic import aggregate_statistic
 
 
 def main():
@@ -41,8 +42,15 @@ def main():
 
         # Get the dashboard data for the selected device
         get_dashboard(access_token, selected_device_id)
+
+        # get the aggregated values of the current hour
         get_zeitverlauf_data(access_token, selected_device_id, TimePeriod.HOUR.value, datetime.datetime.now(), timezone)
-        get_statistik_data(access_token, selected_device_id, datetime.datetime.now(), timezone, locale)
+
+        # get the statistik data over the lifetime of the device.
+        get_statistik_data(access_token, selected_device_id, timezone, locale)
+        # aggregate it and print to console
+        aggregate_statistic()
+        # create svg for reviewing
         create_interactive_html()
 
 

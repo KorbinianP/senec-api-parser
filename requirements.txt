@@ -3,3 +3,4 @@ inquirer
 matplotlib
 mpld3
 pylint
+python-dateutil

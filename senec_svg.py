@@ -1,16 +1,19 @@
+"""Read json with data and generate a html with a svg graphics"""
 import json
 import datetime
 import matplotlib.pyplot as plt
 import mpld3
 
 
+# pylint: disable=too-many-locals
 def create_interactive_html():
+    """Create the html with the interactive svg"""
     # Load the JSON data from the file
-    with open("senec_statistic_data.json", "r") as json_file:
+    with open("senec_statistic_data.json", "r", encoding="utf-8") as json_file:
         zeitverlauf_data = json.load(json_file)
 
-    # Extract relevant data from the JSON
-    intervalle = zeitverlauf_data.get("intervalle", [])
+    # # Extract relevant data from the JSON
+    # intervalle = zeitverlauf_data.get("intervalle", [])
 
     # Initialize lists to store data for plotting
     timestamps = []
@@ -22,7 +25,7 @@ def create_interactive_html():
     stromverbrauch = []
 
     # Parse and extract data
-    for interval in intervalle:
+    for interval in zeitverlauf_data:
         startzeitpunkt = datetime.datetime.strptime(interval["startzeitpunkt"], "%Y-%m-%dT%H:%M:%SZ")
         timestamps.append(startzeitpunkt)
         netzbezug.append(interval["netzbezug"]["wert"])
@@ -69,7 +72,7 @@ def create_interactive_html():
     interactive_plot = mpld3.fig_to_html(plt.gcf())
 
     # Save the interactive HTML plot to a file
-    with open("senec_graph.html", "w") as html_file:
+    with open("senec_graph.html", "w", encoding="utf-8") as html_file:
         html_file.write(interactive_plot)
 
     # Show the interactive plot (for Jupyter Notebook)

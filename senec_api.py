@@ -1,7 +1,9 @@
 """All code contacting the senec api"""
 import json
 import enum
+import datetime
 import requests
+from dateutil.relativedelta import relativedelta
 
 # Define the base URL
 BASE_URL = "https://app-gateway-prod.senecops.com/v1/senec"
@@ -38,7 +40,7 @@ def login(username, password):
             # Extract the token from the response JSON
             response_data = response.json()
             access_token = response_data.get("token")
-            print("Login successful! " + access_token)
+            print("Login successful! Token: " + access_token)
         else:
             print(f"Login failed with status code: {response.status_code}")
 
@@ -94,8 +96,10 @@ def get_dashboard(access_token, device_id):
         # Check if the request was successful (status code 200)
         if response.status_code == 200:
             dashboard_data = response.json()
-            print("Dashboard Data:")
-            print(json.dumps(dashboard_data, indent=4))  # Pretty print the JSON response
+
+            # Write the response data to a JSON file
+            with open("senec_dashboard_data.json", "w", encoding="utf-8") as json_file:
+                json.dump(dashboard_data, json_file, indent=4)
         else:
             print(f"Failed to retrieve dashboard with status code: {response.status_code}")
 
@@ -141,39 +145,54 @@ def get_zeitverlauf_data(access_token, device_id, period, datetime_obj, timezone
         print(f"An error occurred during the API call: {error}")
 
 
-def get_statistik_data(access_token, device_id, datetime_obj, timezone, locale):
+def get_statistik_data(access_token, device_id, timezone, locale):
     """get the data from statistik api endpoint and print it to a json"""
     # Define the API endpoint
     endpoint = f"anlagen/{device_id}/statistik"
 
-    # Format the datetime object as a string
-    datetime_str = datetime_obj.strftime("%Y-%m-%d")
-
-    # Define query parameters
-    params = {"periode": TimePeriod.YEAR.value, "timezone": timezone, "datum": datetime_str, "locale": locale}
-
     headers = {"authorization": access_token}
 
+    date = datetime.datetime.now()
+    date = datetime.datetime(date.year, 12, 31)
+
+    aggregations = []
+
     try:
-        # Send a GET request to the API endpoint with the query parameters
-        response = requests.get(f"{BASE_URL}/{endpoint}", params=params, headers=headers, timeout=20)
+        has_data = True
 
-        # Check if the request was successful (status code 200)
-        if response.status_code == 200:
-            zeitverlauf_data = response.json()
-            #print("Zeitverlauf Data:")
-            #print(zeitverlauf_data)
+        while has_data:
+            # Define query parameters
+            params = {"periode": TimePeriod.YEAR.value, "timezone": timezone, "datum": date.strftime("%Y-%m-%d"), "locale": locale}
 
-            # Write the response data to a JSON file
-            with open("senec_statistic_data.json", "w", encoding="utf-8") as json_file:
-                json.dump(zeitverlauf_data, json_file, indent=4)
+            # Send a GET request to the API endpoint with the query parameters
+            response = requests.get(f"{BASE_URL}/{endpoint}", params=params, headers=headers, timeout=20)
 
-        else:
-            print(f"Request failed with status code: {response.status_code}")
-            print("Request details:")
-            print(f"URL: {response.request.url}")
-            print(f"Headers: {response.request.headers}")
-            print(f"Body: {response.request.body}")
+            # Check if the request was successful (status code 200)
+            if response.status_code == 200:
+                zeitverlauf_data = response.json()
+                #print("Zeitverlauf Data:")
+                #print(zeitverlauf_data)
+                aggregation = zeitverlauf_data.get("aggregation")
+                if aggregation:
+                    # if aggregation has data, collect it
+                    aggregations.append(aggregation)
+                    # try again with one year before
+                    date = date - relativedelta(years=1)
+                else:
+                    # If not, break the while
+                    has_data = False
+
+            else:
+                print(f"Request failed with status code: {response.status_code}")
+                print("Request details:")
+                print(f"URL: {response.request.url}")
+                print(f"Headers: {response.request.headers}")
+                print(f"Body: {response.request.body}")
+                has_data = False
+
+        # Write the response data to a JSON file
+        with open("senec_statistic_data.json", "w", encoding="utf-8") as json_file:
+            json.dump(aggregations, json_file, indent=4)
 
     except requests.exceptions.RequestException as error:
         print(f"An error occurred during the API call: {error}")
